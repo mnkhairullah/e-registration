@@ -28,11 +28,21 @@
   .ok{text-align:center}
   .ok h2{margin:4px 0 6px;font-size:20px}
   .ok p{margin:6px 0;color:var(--muted);font-size:14px}
-  .qr{background:#fff;padding:12px;border-radius:12px;display:inline-block;margin:14px 0}
-  .qr img,.qr canvas{display:block;width:220px;height:220px}
+
+  /* Kartu link undangan */
+  .linkBox{margin:16px 0 6px;padding:12px;border-radius:10px;
+    background:#0b1425;border:1px solid var(--line);text-align:left}
+  .linkBox .lbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:6px}
+  .linkBox a{display:block;word-break:break-all;color:#7fb3ff;font-size:14px;
+    text-decoration:none;line-height:1.45}
+  .linkBox a:hover{text-decoration:underline}
+
   .btn2{display:inline-block;margin-top:10px;padding:12px 16px;border-radius:10px;
-    background:#25d366;color:#06281a;font-weight:700;text-decoration:none;font-size:15px}
-  .link{word-break:break-all;font-size:13px;color:#b9cbe6}
+    font-weight:700;text-decoration:none;font-size:15px;border:0;cursor:pointer}
+  .btnCopy{background:#1e293b;color:#e6edf7;border:1px solid var(--line)}
+  .btnWa{background:#25d366;color:#06281a;margin-left:8px}
+  .copied{margin-top:8px;font-size:13px;color:var(--ok);display:none}
   .foot{margin-top:18px;text-align:center;color:var(--muted);font-size:12px}
 </style>
 </head>
@@ -40,7 +50,7 @@
 <div class="wrap">
   <div class="hd">
     <h1 id="evName">RSVP</h1>
-    <p>Isi data di bawah untuk menerima tiket digital Anda via WhatsApp.</p>
+    <p>Isi data di bawah untuk menerima link undangan Anda.</p>
   </div>
 
   <div id="formCard" class="card">
@@ -53,33 +63,39 @@
     <label for="wa">Nomor WhatsApp</label>
     <input id="wa" type="tel" inputmode="tel" autocomplete="tel" placeholder="cth. 0812xxxxxxx">
 
-    <button id="btn" type="button">Daftar &amp; Kirim Tiket</button>
+    <button id="btn" type="button">Daftar &amp; Kirim Link</button>
     <div id="err" class="msg err"></div>
   </div>
 
   <div id="okCard" class="card ok" style="display:none">
     <h2>✅ Terima kasih!</h2>
     <p id="okMsg"></p>
-    <div class="qr" id="qrBox" style="display:none"></div>
-    <p class="link" id="linkTxt"></p>
-    <a id="waBtn" class="btn2" style="display:none" target="_blank" rel="noopener">Buka WhatsApp &amp; Simpan Tiket</a>
+
+    <div class="linkBox" id="linkBox" style="display:none">
+      <div class="lbl">Link Undangan Anda</div>
+      <a id="linkA" href="#" target="_blank" rel="noopener"></a>
+    </div>
+
+    <div id="actionRow" style="display:none">
+      <button class="btn2 btnCopy" id="btnCopy" type="button">Salin Link</button>
+      <a class="btn2 btnWa" id="waBtn" href="#" target="_blank" rel="noopener">Buka WhatsApp</a>
+      <div class="copied" id="copied">Tersalin ✓</div>
+    </div>
   </div>
 
   <div class="foot">Tiket hanya berlaku untuk satu orang.</div>
 </div>
 
-<!-- Library QR generasi klien (offline, tidak bergantung api.qrserver.com) -->
-<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
 <script>
 (function(){
-  // GANTI dengan URL /exec hasil deploy Apps Script Anda (yang diakhiri /exec)
+  // GANTI dengan URL /exec hasil deploy Apps Script Anda (akhiri /exec)
   var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxgeoQMZzuhvBYeS4pcfnEX15s4pMLFN-QeXy3NcMQjUXO0ZakmOWjOByNd46WbhVxTSg/exec';
 
   var $ = function(id){ return document.getElementById(id); };
   var btn = $('btn'), errBox = $('err');
 
   function setErr(m){ errBox.textContent = m || ''; errBox.style.display = m ? 'block' : 'none'; }
-  function loading(on){ btn.disabled = on; btn.textContent = on ? 'Mengirim…' : 'Daftar & Kirim Tiket'; }
+  function loading(on){ btn.disabled = on; btn.textContent = on ? 'Mengirim…' : 'Daftar & Kirim Link'; }
 
   // POST ke Apps Script (text/plain supaya tidak kena preflight CORS)
   function callApi(action, args){
@@ -95,7 +111,7 @@
     });
   }
 
-  // Ambil info event + status pendaftaran
+  // Info event + status pendaftaran
   callApi('rsvpinfo')
     .then(function(info){
       if (!info) return;
@@ -130,25 +146,49 @@
     $('okCard').style.display = 'block';
 
     if (r.waSent) {
-      $('okMsg').textContent = 'Tiket sudah dikirim ke WhatsApp ' + r.wa + '. Simpan pesan itu, ya!';
+      $('okMsg').textContent = 'Link undangan sudah dikirim ke WhatsApp ' + r.wa + '. Simpan pesan itu, ya!';
     } else {
-      $('okMsg').textContent = 'Pendaftaran berhasil. Klik tombol di bawah untuk menyimpan tiket ke WhatsApp Anda.';
-      var a = $('waBtn'); a.href = r.waFallback || ('https://wa.me/' + r.wa); a.style.display = 'inline-block';
+      $('okMsg').textContent = 'Pendaftaran berhasil. Simpan link undangan di bawah ini.';
     }
 
-    // QR dibuat di klien, bukan ambil gambar dari api.qrserver.com
-    if (r.scanContent || r.token) {
-      var box = $('qrBox');
-      box.innerHTML = '';
-      box.style.display = 'inline-block';
-      new QRCode(box, {
-        text: String(r.scanContent || r.token),
-        width: 220, height: 220,
-        correctLevel: QRCode.CorrectLevel.M
-      });
-    }
+    // Link undangan
+    if (r.linkTiket) {
+      var a = $('linkA');
+      a.href = r.linkTiket;
+      a.textContent = r.linkTiket;
+      $('linkBox').style.display = 'block';
+      $('actionRow').style.display = 'block';
 
-    if (r.linkTiket) { $('linkTxt').textContent = r.linkTiket; }
+      // Tombol "Buka WhatsApp": kirim link ke diri sendiri / provider fallback
+      var w = $('waBtn');
+      w.href = r.waFallback || ('https://wa.me/' + r.wa + '?text=' + encodeURIComponent('Link undangan saya: ' + r.linkTiket));
+
+      // Tombol salin
+      $('btnCopy').onclick = function(){
+        var txt = r.linkTiket;
+        var done = function(){
+          var c = $('copied');
+          c.style.display = 'block';
+          setTimeout(function(){ c.style.display = 'none'; }, 2000);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(done, function(){ fallbackCopy(txt, done); });
+        } else {
+          fallbackCopy(txt, done);
+        }
+      };
+    }
+  }
+
+  function fallbackCopy(txt, cb){
+    var ta = document.createElement('textarea');
+    ta.value = txt;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); cb && cb(); } catch (e) { /* diamkan */ }
+    document.body.removeChild(ta);
   }
 })();
 </script>
