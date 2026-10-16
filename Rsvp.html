@@ -29,7 +29,7 @@
   .ok h2{margin:4px 0 6px;font-size:20px}
   .ok p{margin:6px 0;color:var(--muted);font-size:14px}
   .qr{background:#fff;padding:12px;border-radius:12px;display:inline-block;margin:14px 0}
-  .qr img{display:block;width:220px;height:220px}
+  .qr img,.qr canvas{display:block;width:220px;height:220px}
   .btn2{display:inline-block;margin-top:10px;padding:12px 16px;border-radius:10px;
     background:#25d366;color:#06281a;font-weight:700;text-decoration:none;font-size:15px}
   .link{word-break:break-all;font-size:13px;color:#b9cbe6}
@@ -60,7 +60,7 @@
   <div id="okCard" class="card ok" style="display:none">
     <h2>✅ Terima kasih!</h2>
     <p id="okMsg"></p>
-    <div class="qr" id="qrBox" style="display:none"><img id="qrImg" alt="QR Tiket"></div>
+    <div class="qr" id="qrBox" style="display:none"></div>
     <p class="link" id="linkTxt"></p>
     <a id="waBtn" class="btn2" style="display:none" target="_blank" rel="noopener">Buka WhatsApp &amp; Simpan Tiket</a>
   </div>
@@ -68,25 +68,46 @@
   <div class="foot">Tiket hanya berlaku untuk satu orang.</div>
 </div>
 
+<!-- Library QR generasi klien (offline, tidak bergantung api.qrserver.com) -->
+<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
 <script>
 (function(){
+  // GANTI dengan URL /exec hasil deploy Apps Script Anda (yang diakhiri /exec)
+  var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxgeoQMZzuhvBYeS4pcfnEX15s4pMLFN-QeXy3NcMQjUXO0ZakmOWjOByNd46WbhVxTSg/exec';
+
   var $ = function(id){ return document.getElementById(id); };
   var btn = $('btn'), errBox = $('err');
 
   function setErr(m){ errBox.textContent = m || ''; errBox.style.display = m ? 'block' : 'none'; }
   function loading(on){ btn.disabled = on; btn.textContent = on ? 'Mengirim…' : 'Daftar & Kirim Tiket'; }
 
-  // Info event + status buka/tutup
-  google.script.run.withSuccessHandler(function(info){
-    if (!info) return;
-    $('evName').textContent = info.event;
-    document.title = info.event + ' · RSVP';
-    if (!info.open) {
-      setErr('Pendaftaran RSVP sudah ditutup.');
-      btn.disabled = true;
-      btn.textContent = 'Pendaftaran Ditutup';
-    }
-  }).rsvpInfo();
+  // POST ke Apps Script (text/plain supaya tidak kena preflight CORS)
+  function callApi(action, args){
+    return fetch(WEBAPP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ a: action, args: args || [] })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if (!j || !j.ok) throw new Error((j && j.error) || 'Gagal menghubungi server');
+      return j.data;
+    });
+  }
+
+  // Ambil info event + status pendaftaran
+  callApi('rsvpinfo')
+    .then(function(info){
+      if (!info) return;
+      $('evName').textContent = info.event;
+      document.title = info.event + ' · RSVP';
+      if (!info.open) {
+        setErr('Pendaftaran RSVP sudah ditutup.');
+        btn.disabled = true;
+        btn.textContent = 'Pendaftaran Ditutup';
+      }
+    })
+    .catch(function(){ /* diamkan, form tetap bisa dipakai */ });
 
   btn.addEventListener('click', function(){
     setErr('');
@@ -99,10 +120,9 @@
     if (!wa)             return setErr('Nomor WhatsApp wajib diisi.');
 
     loading(true);
-    google.script.run
-      .withSuccessHandler(function(res){ loading(false); showOk(res); })
-      .withFailureHandler(function(e){ loading(false); setErr((e && e.message) || 'Terjadi kesalahan. Coba lagi.'); })
-      .apiRsvp(nama, divisi, wa);
+    callApi('rsvp', [nama, divisi, wa])
+      .then(function(res){ loading(false); showOk(res); })
+      .catch(function(e){ loading(false); setErr((e && e.message) || 'Terjadi kesalahan. Coba lagi.'); });
   });
 
   function showOk(r){
@@ -115,7 +135,19 @@
       $('okMsg').textContent = 'Pendaftaran berhasil. Klik tombol di bawah untuk menyimpan tiket ke WhatsApp Anda.';
       var a = $('waBtn'); a.href = r.waFallback || ('https://wa.me/' + r.wa); a.style.display = 'inline-block';
     }
-    if (r.qrUrl)     { $('qrImg').src = r.qrUrl; $('qrBox').style.display = 'inline-block'; }
+
+    // QR dibuat di klien, bukan ambil gambar dari api.qrserver.com
+    if (r.scanContent || r.token) {
+      var box = $('qrBox');
+      box.innerHTML = '';
+      box.style.display = 'inline-block';
+      new QRCode(box, {
+        text: String(r.scanContent || r.token),
+        width: 220, height: 220,
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+
     if (r.linkTiket) { $('linkTxt').textContent = r.linkTiket; }
   }
 })();
