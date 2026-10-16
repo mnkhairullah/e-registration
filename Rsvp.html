@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RSVP</title>
+<style>
+  :root{--bg:#0f172a;--card:#111c33;--line:#22304d;--txt:#e6edf7;--muted:#8fa3c0;
+        --brand:#3b82f6;--ok:#10b981;--err:#ef4444;}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:520px;margin:0 auto;padding:20px 16px 40px}
+  .hd{text-align:center;margin:8px 0 20px}
+  .hd h1{margin:0;font-size:22px}
+  .hd p{margin:6px 0 0;color:var(--muted);font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+  label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
+  input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);
+    background:#0b1425;color:var(--txt);font-size:16px;outline:none}
+  input:focus{border-color:var(--brand)}
+  button{margin-top:16px;width:100%;padding:14px;border:0;border-radius:10px;
+    background:var(--brand);color:#fff;font-size:16px;font-weight:600;cursor:pointer}
+  button[disabled]{opacity:.6;cursor:not-allowed}
+  .msg{margin-top:12px;padding:10px 12px;border-radius:10px;font-size:14px;display:none}
+  .msg.err{display:block;background:#3b1010;border:1px solid #6b1c1c;color:#ffbdbd}
+  .ok{text-align:center}
+  .ok h2{margin:4px 0 6px;font-size:20px}
+  .ok p{margin:6px 0;color:var(--muted);font-size:14px}
+  .qr{background:#fff;padding:12px;border-radius:12px;display:inline-block;margin:14px 0}
+  .qr img{display:block;width:220px;height:220px}
+  .btn2{display:inline-block;margin-top:10px;padding:12px 16px;border-radius:10px;
+    background:#25d366;color:#06281a;font-weight:700;text-decoration:none;font-size:15px}
+  .link{word-break:break-all;font-size:13px;color:#b9cbe6}
+  .foot{margin-top:18px;text-align:center;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hd">
+    <h1 id="evName">RSVP</h1>
+    <p>Isi data di bawah untuk menerima tiket digital Anda via WhatsApp.</p>
+  </div>
+
+  <div id="formCard" class="card">
+    <label for="nama">Nama Lengkap</label>
+    <input id="nama" type="text" autocomplete="name" placeholder="cth. Budi Santoso" maxlength="80">
+
+    <label for="divisi">Bagian / Divisi</label>
+    <input id="divisi" type="text" placeholder="cth. Finance" maxlength="80">
+
+    <label for="wa">Nomor WhatsApp</label>
+    <input id="wa" type="tel" inputmode="tel" autocomplete="tel" placeholder="cth. 0812xxxxxxx">
+
+    <button id="btn" type="button">Daftar &amp; Kirim Tiket</button>
+    <div id="err" class="msg err"></div>
+  </div>
+
+  <div id="okCard" class="card ok" style="display:none">
+    <h2>✅ Terima kasih!</h2>
+    <p id="okMsg"></p>
+    <div class="qr" id="qrBox" style="display:none"><img id="qrImg" alt="QR Tiket"></div>
+    <p class="link" id="linkTxt"></p>
+    <a id="waBtn" class="btn2" style="display:none" target="_blank" rel="noopener">Buka WhatsApp &amp; Simpan Tiket</a>
+  </div>
+
+  <div class="foot">Tiket hanya berlaku untuk satu orang.</div>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var btn = $('btn'), errBox = $('err');
+
+  function setErr(m){ errBox.textContent = m || ''; errBox.style.display = m ? 'block' : 'none'; }
+  function loading(on){ btn.disabled = on; btn.textContent = on ? 'Mengirim…' : 'Daftar & Kirim Tiket'; }
+
+  // Info event + status buka/tutup
+  google.script.run.withSuccessHandler(function(info){
+    if (!info) return;
+    $('evName').textContent = info.event;
+    document.title = info.event + ' · RSVP';
+    if (!info.open) {
+      setErr('Pendaftaran RSVP sudah ditutup.');
+      btn.disabled = true;
+      btn.textContent = 'Pendaftaran Ditutup';
+    }
+  }).rsvpInfo();
+
+  btn.addEventListener('click', function(){
+    setErr('');
+    var nama   = $('nama').value.trim();
+    var divisi = $('divisi').value.trim();
+    var wa     = $('wa').value.trim();
+
+    if (nama.length < 2) return setErr('Nama minimal 2 karakter.');
+    if (!divisi)         return setErr('Bagian/Divisi wajib diisi.');
+    if (!wa)             return setErr('Nomor WhatsApp wajib diisi.');
+
+    loading(true);
+    google.script.run
+      .withSuccessHandler(function(res){ loading(false); showOk(res); })
+      .withFailureHandler(function(e){ loading(false); setErr((e && e.message) || 'Terjadi kesalahan. Coba lagi.'); })
+      .apiRsvp(nama, divisi, wa);
+  });
+
+  function showOk(r){
+    $('formCard').style.display = 'none';
+    $('okCard').style.display = 'block';
+
+    if (r.waSent) {
+      $('okMsg').textContent = 'Tiket sudah dikirim ke WhatsApp ' + r.wa + '. Simpan pesan itu, ya!';
+    } else {
+      $('okMsg').textContent = 'Pendaftaran berhasil. Klik tombol di bawah untuk menyimpan tiket ke WhatsApp Anda.';
+      var a = $('waBtn'); a.href = r.waFallback || ('https://wa.me/' + r.wa); a.style.display = 'inline-block';
+    }
+    if (r.qrUrl)     { $('qrImg').src = r.qrUrl; $('qrBox').style.display = 'inline-block'; }
+    if (r.linkTiket) { $('linkTxt').textContent = r.linkTiket; }
+  }
+})();
+</script>
+</body>
+</html>
