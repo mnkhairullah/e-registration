@@ -35,8 +35,8 @@ window.APP = {
     cover: {
       bg: 'cover-bg.png',
       nama:   { x: 50, y: 45,   w: 84, h: 9,   size: 7.5,   weight: 700, lineHeight: 1.1, min: 4.5 },
-      divisi: { x: 50, y: 49.5, w: 84, h: 5.5, size: 4.8, weight: 500, color: '#F0D678', min: 3.2 },
-      tombol: { x: 50, y: 64,   w: 62, size: 5, weight: 700, color: '#0A1A3E', bg: '#F0D678', radius: 3.2, pad: 2.4 }
+      divisi: { x: 50, y: 53, w: 84, h: 5.5, size: 4.8, weight: 500, color: '#F0D678', min: 3.2 },
+      tombol: { x: 50, y: 70,   w: 62, size: 5, weight: 700, color: '#0A1A3E', bg: '#F0D678', radius: 3.2, pad: 2.4 }
     },
 
     // Tiket + QR (sebelum check-in)
@@ -44,7 +44,7 @@ window.APP = {
       bg: 'tiket-bg.png',
       nama:   { x: 50, y: 30, w: 84, h: 9,   size: 7,   weight: 700, lineHeight: 1.1, min: 4 },
       divisi: { x: 50, y: 34, w: 84, h: 5.4, size: 4.5, weight: 500, color: '#F0D678', min: 3 },
-      qr:     { x: 50, y: 61, w: 58 },                       // kotak QR putih 626 px (di 1080)
+      qr:     { x: 50, y: 64, w: 58 },                       // kotak QR putih 626 px (di 1080)
       token:  { x: 50, y: 81, size: 3.6, weight: 500, color: '#F0D678', letterSpacing: 0.5 }
     },
 
@@ -53,7 +53,7 @@ window.APP = {
       bg: 'checked-in-bg.png',
       nama:   { x: 50, y: 45, w: 84, h: 10, size: 8, weight: 700, lineHeight: 1.1, min: 4.5 },
       divisi: { x: 50, y: 54, w: 84, h: 6,  size: 5, weight: 500, color: '#F0D678', min: 3.2 },
-      waktu:  { x: 50, y: 65, size: 4, weight: 500, color: 'rgba(255,255,255,.88)' }
+      waktu:  { x: 50, y: 58, size: 4, weight: 500, color: 'rgba(255,255,255,.88)' }
     },
 
     // ---------- RSVP (expert-day-26-rsvp.html) ----------
