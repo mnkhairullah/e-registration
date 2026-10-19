@@ -138,7 +138,7 @@ input.e:focus,button.e:focus-visible,a.e:focus-visible{box-shadow:0 0 0 calc(var
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, fb); else fb();
   }
   function showOk(r){
-    oM.textContent = r.waSent ? 'The invitation link has been sent to WhatsApp via ' + r.wa + '. Please save that message ☺️ Registration is successful. Please save the invitation link below.';
+    oM.textContent = r.waSent ? 'The invitation link has been sent to WhatsApp via ' + r.wa + '. Make sure to save that message! Your registration is complete. Please save the invitation link below.';
     var has = /^https?:\/\//.test(r.linkTiket || '');
     box.hidden = bS.hidden = bW.hidden = !has;
     if (has) {
