@@ -42,8 +42,8 @@ window.APP = {
     // Tiket + QR (sebelum check-in)
     ticket: {
       bg: 'tiket-bg.png',
-      nama:   { x: 50, y: 28, w: 84, h: 9,   size: 7,   weight: 700, lineHeight: 1.1, min: 4 },
-      divisi: { x: 50, y: 36, w: 84, h: 5.4, size: 4.5, weight: 500, color: '#F0D678', min: 3 },
+      nama:   { x: 50, y: 30, w: 84, h: 9,   size: 7,   weight: 700, lineHeight: 1.1, min: 4 },
+      divisi: { x: 50, y: 34, w: 84, h: 5.4, size: 4.5, weight: 500, color: '#F0D678', min: 3 },
       qr:     { x: 50, y: 61, w: 58 },                       // kotak QR putih 626 px (di 1080)
       token:  { x: 50, y: 81, size: 3.6, weight: 500, color: '#F0D678', letterSpacing: 0.5 }
     },
