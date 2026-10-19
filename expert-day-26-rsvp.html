@@ -93,28 +93,28 @@ input.e:focus,button.e:focus-visible,a.e:focus-visible{box-shadow:0 0 0 calc(var
 
   /* Layar 1: formulir */
   var eT = mk(sF, 'h1', { x: 50, y: 22, w: 84, size: 7, weight: 700, lineHeight: 1.1, shadow: SH }, R.judul);
-  mk(sF, 'p', { x: 50, y: 29, w: 80, size: 3.6, weight: 500, color: '#F0D678', lineHeight: 1.35, shadow: SH, teks: 'Isi data di bawah untuk menerima link undangan Anda.' }, R.sub);
-  var iN = mk(sF, 'input', Object.assign({}, FIELD, { x: 50, y: 42, w: 80, placeholder: 'Nama Lengkap' }), R.nama || {});
-  var iD = mk(sF, 'input', Object.assign({}, FIELD, { x: 50, y: 50, w: 80, placeholder: 'Bagian / Divisi' }), R.divisi || {});
-  var iW = mk(sF, 'input', Object.assign({}, FIELD, { x: 50, y: 58, w: 80, placeholder: 'Nomor WhatsApp (0812…)' }), R.wa || {});
+  mk(sF, 'p', { x: 50, y: 29, w: 80, size: 3.6, weight: 500, color: '#F0D678', lineHeight: 1.35, shadow: SH, teks: 'Please fill out the form below to receive your invitation link.' }, R.sub);
+  var iN = mk(sF, 'input', Object.assign({}, FIELD, { x: 50, y: 42, w: 80, placeholder: 'Full Name' }), R.nama || {});
+  var iD = mk(sF, 'input', Object.assign({}, FIELD, { x: 50, y: 50, w: 80, placeholder: 'Division' }), R.divisi || {});
+  var iW = mk(sF, 'input', Object.assign({}, FIELD, { x: 50, y: 58, w: 80, placeholder: 'WhatsApp Number' }), R.wa || {});
   iN.type = 'text'; iN.maxLength = 80; iN.autocomplete = 'name';
   iD.type = 'text'; iD.maxLength = 80;
   iW.type = 'tel'; iW.inputMode = 'tel'; iW.autocomplete = 'tel';
-  var bT = mk(sF, 'button', Object.assign({ x: 50, y: 69, w: 62, teks: 'Daftar & Kirim Link' }, BTN), R.tombol || {}); bT.type = 'button';
+  var bT = mk(sF, 'button', Object.assign({ x: 50, y: 69, w: 62, teks: 'Register' }, BTN), R.tombol || {}); bT.type = 'button';
   var eE = mk(sF, 'div', { x: 50, y: 76, w: 80, size: 3.4, weight: 500, color: '#ffb4b4', lineHeight: 1.3, shadow: SH }, R.pesan || {});
-  mk(sF, 'div', { x: 50, y: 94, size: 3, weight: 500, color: 'rgba(255,255,255,.75)', shadow: SH, teks: 'Tiket hanya berlaku untuk satu orang.' }, R.catatan);
+  mk(sF, 'div', { x: 50, y: 94, size: 3, weight: 500, color: 'rgba(255,255,255,.75)', shadow: SH, teks: 'This ticket is valid only for one person.' }, R.catatan);
   var autoT = eT && !eT.textContent; if (autoT) eT.textContent = demo ? 'Nama Event' : 'RSVP';
   var lbT = bT.textContent;
 
   /* Layar 2: berhasil + link undangan */
-  mk(sO, 'h2', { x: 50, y: 30, w: 84, size: 7, weight: 700, lineHeight: 1.1, shadow: SH, teks: '✅ Terima kasih!' }, O.judul);
+  mk(sO, 'h2', { x: 50, y: 30, w: 84, size: 7, weight: 700, lineHeight: 1.1, shadow: SH, teks: 'Thank you!' }, O.judul);
   var oM = mk(sO, 'p', { x: 50, y: 40, w: 80, size: 3.8, weight: 500, lineHeight: 1.4, color: 'rgba(255,255,255,.92)', shadow: SH }, O.pesan || {});
   var box = mk(sO, 'div', { x: 50, y: 52, w: 80, size: 3.4, weight: 500, color: '#F0D678', bg: 'rgba(0,0,0,.32)', radius: 2.4, pad: 2.4, lineHeight: 1.4 }, O.link || {});
   box.classList.add('box');
   var bl = document.createElement('small'), la = document.createElement('a');
-  bl.textContent = 'Link undangan Anda'; la.target = '_blank'; la.rel = 'noopener'; box.append(bl, la);
-  var bS = mk(sO, 'button', Object.assign({ x: 50, y: 64, w: 62, size: 4.4, teks: 'Salin Link' }, BTN, { bg: 'rgba(255,255,255,.16)', color: '#fff', border: '#F0D678' }), O.salin || {}); bS.type = 'button';
-  var bW = mk(sO, 'a', Object.assign({ x: 50, y: 72, w: 62, size: 4.4, teks: 'Buka WhatsApp' }, BTN, { bg: '#25D366', color: '#06281a' }), O.wa || {});
+  bl.textContent = 'Your invitation link'; la.target = '_blank'; la.rel = 'noopener'; box.append(bl, la);
+  var bS = mk(sO, 'button', Object.assign({ x: 50, y: 64, w: 62, size: 4.4, teks: 'Copy Link' }, BTN, { bg: 'rgba(255,255,255,.16)', color: '#fff', border: '#F0D678' }), O.salin || {}); bS.type = 'button';
+  var bW = mk(sO, 'a', Object.assign({ x: 50, y: 72, w: 62, size: 4.4, teks: 'Open WhatsApp' }, BTN, { bg: '#25D366', color: '#06281a' }), O.wa || {});
   bW.target = '_blank'; bW.rel = 'noopener';
   var lbS = bS.textContent;
 
@@ -138,13 +138,13 @@ input.e:focus,button.e:focus-visible,a.e:focus-visible{box-shadow:0 0 0 calc(var
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, fb); else fb();
   }
   function showOk(r){
-    oM.textContent = r.waSent ? 'Link undangan sudah dikirim ke WhatsApp ' + r.wa + '. Simpan pesan itu, ya!' : 'Pendaftaran berhasil. Simpan link undangan di bawah ini.';
+    oM.textContent = r.waSent ? 'The invitation link has been sent to WhatsApp via ' + r.wa + '. Please save that message ☺️ Registration is successful. Please save the invitation link below.';
     var has = /^https?:\/\//.test(r.linkTiket || '');
     box.hidden = bS.hidden = bW.hidden = !has;
     if (has) {
       la.href = r.linkTiket; la.textContent = r.linkTiket;
       bW.href = r.waFallback || ('https://wa.me/' + r.wa + '?text=' + encodeURIComponent('Link undangan saya: ' + r.linkTiket));
-      bS.onclick = function(){ copy(r.linkTiket, function(){ bS.textContent = 'Tersalin ✓'; setTimeout(function(){ bS.textContent = lbS; }, 2000); }); };
+      bS.onclick = function(){ copy(r.linkTiket, function(){ bS.textContent = 'Copied ✓'; setTimeout(function(){ bS.textContent = lbS; }, 2000); }); };
     }
     show(sO);
     if (A.VIBRATE && navigator.vibrate) navigator.vibrate(A.VIBRATE);
