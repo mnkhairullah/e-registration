@@ -34,7 +34,7 @@ window.APP = {
     // Sampul "Buka Undangan" (tampil sebelum tiket)
     cover: {
       bg: 'cover-bg.png',
-      nama:   { x: 50, y: 42,   w: 84, h: 9,   size: 8,   weight: 700, lineHeight: 1.1, min: 4.5 },
+      nama:   { x: 50, y: 45,   w: 84, h: 9,   size: 7.5,   weight: 700, lineHeight: 1.1, min: 4.5 },
       divisi: { x: 50, y: 49.5, w: 84, h: 5.5, size: 4.8, weight: 500, color: '#F0D678', min: 3.2 },
       tombol: { x: 50, y: 64,   w: 62, size: 5, weight: 700, color: '#0A1A3E', bg: '#F0D678', radius: 3.2, pad: 2.4 }
     },
