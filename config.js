@@ -53,7 +53,7 @@ window.APP = {
       bg: 'checked-in-bg.png',
       nama:   { x: 50, y: 45, w: 84, h: 10, size: 8, weight: 700, lineHeight: 1.1, min: 4.5 },
       divisi: { x: 50, y: 54, w: 84, h: 6,  size: 5, weight: 500, color: '#F0D678', min: 3.2 },
-      waktu:  { x: 50, y: 62, size: 4, weight: 500, color: 'rgba(255,255,255,.88)' }
+      waktu:  { x: 50, y: 65, size: 4, weight: 500, color: 'rgba(255,255,255,.88)' }
     },
 
     // ---------- RSVP (expert-day-26-rsvp.html) ----------
