@@ -140,7 +140,7 @@ function boot(safe){
       .then(function(j){ if (!j || !j.ok) throw new Error((j && j.error) || 'Gagal menghubungi server'); return j.data; });
   }
   function err(m){ eE.textContent = m || ''; }
-  function loading(on){ bT.disabled = on; bT.textContent = on ? 'Mengirim…' : lbT; }
+  function loading(on){ bT.disabled = on; bT.textContent = on ? 'Sending…' : lbT; }
   function copy(t, done){
     function fb(){
       var ta = document.createElement('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;opacity:0';
