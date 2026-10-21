@@ -58,20 +58,18 @@ window.APP = {
 
     // ---------- RSVP (expert-day-26-rsvp.html) ----------
     // Layar 1: formulir. Ganti 'bg' dengan gambar 1080 x 1920 milik Anda.
-    // Untuk elemen teks (judul, sub, catatan): false = sembunyikan; teks: '' pada judul = pakai nama event dari server.
+    // judul, sub, catatan TIDAK dipakai: teksnya sudah ada di rsvp-bg.png. Untuk menampilkannya lagi, tambahkan mis.
+    //   judul: { x: 50, y: 22, w: 84, size: 7, weight: 700, lineHeight: 1.1, teks: '' }   (teks '' = nama event dari server)
     // 'field' = gaya bersama untuk kolom nama, divisi, dan WhatsApp (bisa ditimpa per kolom).
     rsvp: {
       bg: 'rsvp-bg.png',
       bleed: 300,   // gambar 1080 x (1920 + 2 x bleed) = 1080 x 2520. 300 px atas & bawah hanya tampil di HP yang lebih tinggi dari 16:9. Isi 0 bila gambar Anda 1080 x 1920 biasa.
-      judul:   { x: 50, y: 22, w: 84, size: 7, weight: 700, lineHeight: 1.1, teks: '' },
-      sub:     { x: 50, y: 29, w: 80, size: 3.6, weight: 500, color: '#F0D678', lineHeight: 1.35, teks: 'Please fill out the form below to receive your invitation link' },
       field:   { bg: 'rgba(255,255,255,.95)', color: '#0A1A3E', border: '#F0D678', radius: 2.4, pad: 2.2, size: 4, weight: 500 },
       nama:    { x: 50, y: 42, w: 80, placeholder: 'Full Name' },
       divisi:  { x: 50, y: 50, w: 80, placeholder: 'Division' },
       wa:      { x: 50, y: 58, w: 80, placeholder: 'WhatsApp Number (08...)' },
       tombol:  { x: 50, y: 69, w: 62, size: 5, weight: 700, color: '#0A1A3E', bg: '#F0D678', radius: 3.2, pad: 2.4, teks: 'Register' },
       pesan:   { x: 50, y: 76, w: 80, size: 3.4, weight: 500, color: '#ffb4b4', lineHeight: 1.3 },   // pesan galat
-      catatan: { x: 50, y: 88, size: 3, weight: 500, color: 'rgba(255,255,255,.75)', teks: 'This ticket is only valid for one person.' }
     },
 
     // Layar 2: berhasil daftar + link undangan
