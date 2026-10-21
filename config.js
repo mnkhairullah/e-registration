@@ -76,7 +76,6 @@ window.APP = {
     rsvpOk: {
       bg: 'rsvp-sukses-bg.png',
       bleed: 300,
-      judul:  { x: 50, y: 30, w: 84, size: 7, weight: 700, lineHeight: 1.1, teks: 'Thank you!' },
       pesan:  { x: 50, y: 40, w: 80, size: 3.8, weight: 500, lineHeight: 1.4, color: 'rgba(255,255,255,.92)' },
       link:   { x: 50, y: 52, w: 80, size: 3.4, weight: 500, color: '#F0D678', bg: 'rgba(0,0,0,.32)', radius: 2.4, pad: 2.4, lineHeight: 1.4 },
       salin:  { x: 50, y: 64, w: 62, size: 4.4, teks: 'Copy Link' },
