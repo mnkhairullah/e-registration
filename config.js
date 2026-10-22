@@ -68,7 +68,7 @@ window.APP = {
       bleed: 300,   // gambar 1080 x (1920 + 2 x bleed) = 1080 x 2520. 300 px atas & bawah hanya tampil di HP yang lebih tinggi dari 16:9. Isi 0 bila gambar Anda 1080 x 1920 biasa.
       field:   { bg: 'rgba(255,255,255,.95)', color: '#0A1A3E', border: '#F0D678', radius: 2.4, pad: 2.2, size: 4, weight: 500 },
       nama:    { x: 50, y: 42, w: 80, placeholder: 'Full Name' },
-      divisi:  { x: 50, y: 50, w: 80, placeholder: 'Division' },
+      divisi:  { x: 50, y: 50, w: 80, placeholder: 'Departement' },
       wa:      { x: 50, y: 58, w: 80, placeholder: 'WhatsApp Number (08...)' },
       tombol:  { x: 50, y: 69, w: 62, size: 5, weight: 700, color: '#0A1A3E', bg: '#F0D678', radius: 3.2, pad: 2.4, teks: 'Register' },
       pesan:   { x: 50, y: 76, w: 80, size: 3.4, weight: 500, color: '#ffb4b4', lineHeight: 1.3 },   // pesan galat
