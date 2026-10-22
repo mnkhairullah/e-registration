@@ -4,6 +4,8 @@
 // Selebihnya OPSIONAL. Posisi memakai PERSEN dari desain 1080 x 1920 (titik tengah elemen):
 //   x = dari kiri, y = dari atas, w = lebar kotak, h = tinggi kotak (untuk ukuran otomatis)
 //   size = ukuran huruf (persen lebar desain), weight, color, font, letterSpacing, uppercase,
+//   lines: 2 (khusus nama) = nama yang tidak muat 1 baris dipecah jadi 2 baris seimbang; w/h = lebar & tinggi maksimum,
+//   y2 = titik tengah (y) khusus nama 2 baris (bila kosong: tepi bawah tetap di tempat nama 1 baris),
 //   italic, lineHeight, shadow, align, min (ukuran huruf terkecil saat nama panjang dikecilkan)
 //   Khusus tombol: bg (warna latar), radius (sudut), pad (jarak dalam)
 // Pratinjau tanpa token (tambah &grid=1 untuk garis bantu 10%):
@@ -34,7 +36,7 @@ window.APP = {
     // Sampul "Buka Undangan" (tampil sebelum tiket)
     cover: {
       bg: 'cover-bg.webp',
-      nama:   { x: 50, y: 45,   w: 84, h: 9,   size: 7.5,   weight: 700, lineHeight: 1.1, min: 4.5 },
+      nama:   { x: 50, y: 45,   w: 70, h: 7.4, size: 7.5,   weight: 700, lineHeight: 1.1, lines: 2, y2: 46.9, min: 3.5 },
       divisi: { x: 50, y: 53, w: 84, h: 5.5, size: 4.8, weight: 500, color: '#F0D678', min: 3.2 },
       tombol: { x: 50, y: 75,   w: 62, size: 5, weight: 700, color: '#0A1A3E', bg: '#F0D678', radius: 3.2, pad: 2.4 }
     },
@@ -42,7 +44,7 @@ window.APP = {
     // Tiket + QR (sebelum check-in)
     ticket: {
       bg: 'tiket-bg.webp',
-      nama:   { x: 50, y: 30, w: 84, h: 9,   size: 7,   weight: 700, lineHeight: 1.1, min: 4 },
+      nama:   { x: 50, y: 30, w: 70, h: 8,   size: 7,   weight: 700, lineHeight: 1.1, lines: 2, min: 3.5 },
       divisi: { x: 50, y: 34, w: 84, h: 5.4, size: 4.5, weight: 500, color: '#F0D678', min: 3 },
       qr:     { x: 50, y: 62, w: 58 },                       // kotak QR putih 626 px (di 1080)
       token:  { x: 50, y: 81, size: 3.6, weight: 500, color: '#F0D678', letterSpacing: 0.5 }
@@ -51,7 +53,7 @@ window.APP = {
     // Layar berhasil check-in
     success: {
       bg: 'checked-in-bg.webp',
-      nama:   { x: 50, y: 54, w: 84, h: 10, size: 8, weight: 700, lineHeight: 1.1, min: 4.5 },
+      nama:   { x: 50, y: 54, w: 77, h: 9.2, size: 8, weight: 700, lineHeight: 1.1, lines: 2, min: 3.5 },
       divisi: { x: 50, y: 60, w: 84, h: 6,  size: 5, weight: 500, color: '#F0D678', min: 3.2 },
       waktu:  { x: 50, y: 68, size: 4, weight: 500, color: 'rgba(255,255,255,.88)' }
     },
