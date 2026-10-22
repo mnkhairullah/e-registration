@@ -155,8 +155,12 @@ function arm() { // dipanggil pada sentuhan; hanya jadi "aktif" bila browser sud
   wake();
   if (simAfterArm) { simAfterArm = false; setTimeout(() => render({ ...demoData, hadir: true }), 5000); }
 }
-// hanya event yang BENAR-BENAR dihitung browser sebagai sentuhan pengguna (touchstart/pointerdown tidak cukup)
-['pointerup', 'touchend', 'mousedown', 'click', 'keydown'].forEach(ev => addEventListener(ev, arm, { passive: true }));
+// Hanya tombol "Buka Undangan" yang membuka tiket. Tap di area lain tidak akan membuka.
+// Klik tombol tetap memicu gesture pengguna yang sah untuk navigator.vibrate & AudioContext.
+['#gb', '#cb'].forEach(sel => {
+  const el = document.querySelector(sel);
+  if (el) el.addEventListener('click', arm);
+});
 function chime() {
   if (!actx || !useSound) return;
   try {
