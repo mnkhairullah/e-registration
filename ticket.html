@@ -224,9 +224,41 @@ function setup(sec, key, map) {
   if (DES.letterbox) s.style.background = DES.letterbox;
   for (const id in map) { if (cfg[map[id]]) place($(id), cfg[map[id]]); else $(id).hidden = true; }
 }
+// Nama panjang ('lines: 2' di config.js): bila tidak muat satu baris, dipecah jadi 2 baris seimbang (di antara kata) dan
+// huruf dikecilkan seperlunya agar muat di lebar kotak ('w') dan tinggi 'h'. Tepi bawah teks tetap di tempat nama 1 baris
+// (supaya tidak menabrak divisi); isi 'y2' (% tinggi desain) untuk menentukan sendiri titik tengah nama 2 baris.
+let _cx;
+function fitName(el, c) {
+  const H = el.closest('.st').clientHeight, W = el.clientWidth;
+  if (!H || !W) return;
+  const full = el._full && el.textContent.replace(/\n/g, ' ') === el._full ? el._full : (el._full = el.textContent.replace(/\s+/g, ' ').trim());
+  const base = c.size || 4, lo = c.min || base * 0.5;
+  el.textContent = full; el.style.whiteSpace = 'nowrap'; el.style.top = c.y + '%'; el.style.fontSize = fs(base);
+  const bottom = c.y / 100 * H + el.offsetHeight / 2;                       // tepi bawah nama 1 baris
+  if (el.scrollWidth <= W + 1) { el.style.whiteSpace = ''; return; }        // muat 1 baris
+  const words = full.split(' ');
+  if (words.length > 1) {                                                   // pilih pemisah yang membuat 2 baris paling seimbang
+    const cx = _cx || (_cx = document.createElement('canvas').getContext('2d')), cs = getComputedStyle(el);
+    cx.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+    const m = s => cx.measureText(c.uppercase ? s.toUpperCase() : s).width;
+    let best = 1, bw = Infinity;
+    for (let i = 1; i < words.length; i++) {
+      const w = Math.max(m(words.slice(0, i).join(' ')), m(words.slice(i).join(' ')));
+      if (w < bw) { bw = w; best = i; }
+    }
+    el.textContent = words.slice(0, best).join(' ') + '\n' + words.slice(best).join(' ');
+  }
+  el.style.whiteSpace = 'pre';
+  const maxH = c.h ? H * c.h / 100 : Infinity;
+  let n = base;
+  while ((el.scrollWidth > W + 1 || el.offsetHeight > maxH + 1) && n > lo) { n = Math.max(lo, n - 0.25); el.style.fontSize = fs(n); }
+  if (el.scrollWidth > W + 1) el.style.whiteSpace = 'pre-line';             // satu kata terlalu panjang: biarkan terpecah daripada keluar kotak
+  el.style.top = c.y2 != null ? c.y2 + '%' : (bottom - el.offsetHeight / 2) + 'px';
+}
 // Ukuran otomatis: bila 'h' (tinggi kotak, % tinggi desain) diisi, huruf dikecilkan sampai teks muat (batas bawah 'min')
 function shrink(el) {
   const c = el._c;
+  if (c && c.lines > 1) return fitName(el, c);
   if (!c || !c.h) return;
   const maxH = el.closest('.st').clientHeight * c.h / 100;
   if (!maxH) return;
@@ -241,6 +273,7 @@ const fit = () => document.querySelectorAll('.st').forEach(st => {
 addEventListener('resize', fit);
 if (DES && DES.font) document.body.style.fontFamily = DES.font;
 if (DES && DES.fontUrl) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = DES.fontUrl; document.head.appendChild(l); }
+if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', fit); // hitung ulang setelah huruf selesai dimuat
 setup('#dpend', 'ticket', { '#dn': 'nama', '#dd': 'divisi', '#dqr': 'qr', '#dt': 'token' });
 setup('#dok', 'success', { '#sn': 'nama', '#sd': 'divisi', '#sw': 'waktu' });
 setup('#dcover', 'cover', { '#cn': 'nama', '#cd': 'divisi', '#cb': 'tombol' });
