@@ -33,7 +33,7 @@ window.APP = {
 
     // Sampul "Buka Undangan" (tampil sebelum tiket)
     cover: {
-      bg: 'cover-bg.png',
+      bg: 'cover-bg.webp',
       nama:   { x: 50, y: 45,   w: 84, h: 9,   size: 7.5,   weight: 700, lineHeight: 1.1, min: 4.5 },
       divisi: { x: 50, y: 53, w: 84, h: 5.5, size: 4.8, weight: 500, color: '#F0D678', min: 3.2 },
       tombol: { x: 50, y: 75,   w: 62, size: 5, weight: 700, color: '#0A1A3E', bg: '#F0D678', radius: 3.2, pad: 2.4 }
@@ -41,7 +41,7 @@ window.APP = {
 
     // Tiket + QR (sebelum check-in)
     ticket: {
-      bg: 'tiket-bg.png',
+      bg: 'tiket-bg.webp',
       nama:   { x: 50, y: 30, w: 84, h: 9,   size: 7,   weight: 700, lineHeight: 1.1, min: 4 },
       divisi: { x: 50, y: 34, w: 84, h: 5.4, size: 4.5, weight: 500, color: '#F0D678', min: 3 },
       qr:     { x: 50, y: 62, w: 58 },                       // kotak QR putih 626 px (di 1080)
@@ -50,19 +50,19 @@ window.APP = {
 
     // Layar berhasil check-in
     success: {
-      bg: 'checked-in-bg.png',
-      nama:   { x: 50, y: 48, w: 84, h: 10, size: 8, weight: 700, lineHeight: 1.1, min: 4.5 },
-      divisi: { x: 50, y: 55, w: 84, h: 6,  size: 5, weight: 500, color: '#F0D678', min: 3.2 },
+      bg: 'checked-in-bg.webp',
+      nama:   { x: 50, y: 54, w: 84, h: 10, size: 8, weight: 700, lineHeight: 1.1, min: 4.5 },
+      divisi: { x: 50, y: 60, w: 84, h: 6,  size: 5, weight: 500, color: '#F0D678', min: 3.2 },
       waktu:  { x: 50, y: 68, size: 4, weight: 500, color: 'rgba(255,255,255,.88)' }
     },
 
     // ---------- RSVP (expert-day-26-rsvp.html) ----------
     // Layar 1: formulir. Ganti 'bg' dengan gambar 1080 x 1920 milik Anda.
-    // judul, sub, catatan TIDAK dipakai: teksnya sudah ada di rsvp-bg.png. Untuk menampilkannya lagi, tambahkan mis.
+    // judul, sub, catatan TIDAK dipakai: teksnya sudah ada di rsvp-bg.webp. Untuk menampilkannya lagi, tambahkan mis.
     //   judul: { x: 50, y: 22, w: 84, size: 7, weight: 700, lineHeight: 1.1, teks: '' }   (teks '' = nama event dari server)
     // 'field' = gaya bersama untuk kolom nama, divisi, dan WhatsApp (bisa ditimpa per kolom).
     rsvp: {
-      bg: 'rsvp-bg.png',
+      bg: 'rsvp-bg.webp',
       bleed: 300,   // gambar 1080 x (1920 + 2 x bleed) = 1080 x 2520. 300 px atas & bawah hanya tampil di HP yang lebih tinggi dari 16:9. Isi 0 bila gambar Anda 1080 x 1920 biasa.
       field:   { bg: 'rgba(255,255,255,.95)', color: '#0A1A3E', border: '#F0D678', radius: 2.4, pad: 2.2, size: 4, weight: 500 },
       nama:    { x: 50, y: 42, w: 80, placeholder: 'Full Name' },
@@ -74,7 +74,7 @@ window.APP = {
 
     // Layar 2: berhasil daftar + link undangan
     rsvpOk: {
-      bg: 'rsvp-sukses-bg.png',
+      bg: 'rsvp-sukses-bg.webp',
       bleed: 300,
       pesan:  { x: 50, y: 40, w: 80, size: 3.8, weight: 500, lineHeight: 1.4, color: 'rgba(255,255,255,.92)' },
       link:   { x: 50, y: 52, w: 80, size: 3.4, weight: 500, color: '#F0D678', bg: 'rgba(0,0,0,.32)', radius: 2.4, pad: 2.4, lineHeight: 1.4 },
