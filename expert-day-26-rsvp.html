@@ -109,7 +109,7 @@ function boot(safe){
   var eT = R.judul ? mk(sF, 'h1', { x: 50, y: 22, w: 84, size: 7, weight: 700, lineHeight: 1.1, shadow: SH }, R.judul) : null;
   if (R.sub) mk(sF, 'p', { x: 50, y: 29, w: 80, size: 3.6, weight: 500, color: '#F0D678', lineHeight: 1.35, shadow: SH }, R.sub);
   var iN = mk(sF, 'input', Object.assign({}, FIELD, { x: 50, y: 42, w: 80, placeholder: 'Full Name' }), R.nama || {});
-  var iD = mk(sF, 'input', Object.assign({}, FIELD, { x: 50, y: 50, w: 80, placeholder: 'Division' }), R.divisi || {});
+  var iD = mk(sF, 'input', Object.assign({}, FIELD, { x: 50, y: 50, w: 80, placeholder: 'Departement' }), R.divisi || {});
   var iW = mk(sF, 'input', Object.assign({}, FIELD, { x: 50, y: 58, w: 80, placeholder: 'WhatsApp Number' }), R.wa || {});
   iN.type = 'text'; iN.maxLength = 80; iN.autocomplete = 'name';
   iD.type = 'text'; iD.maxLength = 80;
