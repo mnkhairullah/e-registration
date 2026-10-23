@@ -22,7 +22,7 @@ window.APP = {
   // --- Getar & sampul ---
   COVER: true,                                  // false = tanpa sampul "Buka Undangan"
   COVER_TEKS: { salam: 'Kepada Yth.', ajakan: 'Anda diundang secara khusus', tombol: 'Buka Undangan' },
-  VIBRATE: [200, 120, 200],           // pola getar (milidetik); false = mati
+  VIBRATE: [400, 150, 400, 150, 800],           // pola getar (milidetik); false = mati
   SOUND: 'auto',                                // bunyi hanya bila HP tidak bisa bergetar (iPhone) | true | false
 
   // --- Desain (kosongkan 'bg' bila ingin tampilan polos bawaan) ---
@@ -82,7 +82,8 @@ window.APP = {
       pesan:  { x: 50, y: 40, w: 80, size: 3.8, weight: 500, lineHeight: 1.4, color: 'rgba(255,255,255,.92)' },
       link:   { x: 50, y: 52, w: 80, size: 3.4, weight: 500, color: '#F0D678', bg: 'rgba(0,0,0,.32)', radius: 2.4, pad: 2.4, lineHeight: 1.4 },
       salin:  { x: 50, y: 64, w: 62, size: 4.4, teks: 'Copy Link' },
-      wa:     { x: 50, y: 72, w: 62, size: 4.4, teks: 'Open WhatsApp' }
+      wa:     { x: 50, y: 72, w: 62, size: 4.4, teks: 'Open WhatsApp' },
+      ulang:  { x: 50, y: 80, w: 62, size: 3.4, teks: 'Register another person' }   // tautan kecil: daftarkan orang lain dari HP yang sama; false = sembunyikan
     }
   }
 };
