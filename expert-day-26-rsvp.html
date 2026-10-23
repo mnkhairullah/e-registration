@@ -32,7 +32,7 @@ input.e:focus,button.e:focus-visible,a.e:focus-visible{box-shadow:0 0 0 calc(var
 </head>
 <body>
 <div id="stage"></div>
-<div id="load" role="status" aria-live="polite"><div class="sp"></div><div>Memuat formulir…</div></div>
+<div id="load" role="status" aria-live="polite"><div class="sp"></div><div>Loading…</div></div>
 <script>/* pengaman: layar "Memuat" tidak boleh menutup halaman selamanya bila skrip utama gagal */
 addEventListener("error",function(){var l=document.getElementById("load");if(l)l.style.display="none"});
 setTimeout(function(){var l=document.getElementById("load");if(l)l.style.display="none"},20000);</script>
