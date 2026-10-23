@@ -23,6 +23,7 @@ video{width:100%;max-height:280px;border-radius:12px;background:#000;margin-top:
 #out{padding:6px 12px;font-size:14px}.hr{display:flex;align-items:center;gap:10px}
 #rem{width:auto;padding:0}
 .hi{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--bd);font-size:14px}.hi:last-child{border:0}
+#hist{max-height:45vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;background:var(--mu)}.dot.ok{background:var(--ok)}.dot.wn{background:var(--wn)}.dot.er{background:var(--er)}
 </style></head><body><div class="w">
 <header><h1 id="ev">Check-in</h1><div class="hr"><div id="stat"></div><button id="out" hidden>Keluar</button></div></header>
@@ -47,7 +48,7 @@ video{width:100%;max-height:280px;border-radius:12px;background:#000;margin-top:
 
   <div id="res" hidden></div>
 
-  <div class="card" id="histCard" hidden><b>Riwayat scan</b><div id="hist"></div></div>
+  <div class="card" id="histCard" hidden><b>Riwayat scan <span id="hn" class="mu"></span></b><div id="hist"></div></div>
 
   <div class="card">
     <b>Cari Nama Tamu</b>
@@ -173,18 +174,27 @@ async function enter(fromStore) {
 /* Anti-ulang & paralel. Dulu scanner menunggu jawaban server sebelum boleh membaca QR berikutnya.
    Sekarang tiap token diproses sendiri: QR yang masih terlihat di kamera tidak dikirim ulang,
    dan QR tamu berikutnya langsung diproses walau tamu sebelumnya belum selesai. */
-const seen = new Map(), inflight = new Set(), hist = [];
+const seen = new Map(), inflight = new Set();
 const tokenOf = raw => {
   const t = String(raw || '').trim(), m = t.match(/[?&][tg]=([A-Za-z0-9]+)/);
   return (m ? m[1] : t).toUpperCase().slice(0, 40);
 };
+/* Riwayat scan: semua entri tampil (bisa digulir). Disimpan per tab (sessionStorage) agar tidak hilang saat halaman dimuat ulang; dihapus saat Keluar. */
+const KH = 'etk_h', HMAX = 1000, hist = [];
+try { JSON.parse(sessionStorage.getItem(KH) || '[]').forEach(x => hist.push({ cls: x.c, text: x.x, t: new Date(x.t) })); } catch (e) {}
+const histRow = h => '<div class="hi"><span><i class="dot ' + h.cls + '"></i>' + esc(h.text) + '</span><span class="mu">' +
+  h.t.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + '</span></div>';
+function histCount() { $('#histCard').hidden = !hist.length; $('#hn').textContent = hist.length ? '(' + hist.length + ')' : ''; }
+function renderHist() { $('#hist').innerHTML = hist.map(histRow).join(''); histCount(); }
 function addHist(cls, text) {
-  hist.unshift({ cls, text, t: new Date() });
-  if (hist.length > 6) hist.pop();
-  $('#histCard').hidden = false;
-  $('#hist').innerHTML = hist.map(h => '<div class="hi"><span><i class="dot ' + h.cls + '"></i>' + esc(h.text) + '</span><span class="mu">' +
-    h.t.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + '</span></div>').join('');
+  const e = { cls, text, t: new Date() };
+  hist.unshift(e);
+  $('#hist').insertAdjacentHTML('afterbegin', histRow(e));
+  if (hist.length > HMAX) { hist.pop(); $('#hist').lastElementChild.remove(); }
+  try { sessionStorage.setItem(KH, JSON.stringify(hist.map(x => ({ c: x.cls, x: x.text, t: +x.t })))); } catch (e) {}
+  histCount(); $('#hist').scrollTop = 0;
 }
+renderHist();
 function onDetect(raw) { // dipanggil dari kamera
   const k = tokenOf(raw), now = Date.now(), t0 = seen.get(k);
   seen.set(k, now); // jendela bergeser: selama QR masih terlihat, tidak diproses ulang
@@ -315,9 +325,11 @@ $('#wB').onclick = async () => {
   if (busy) return;
   busy = true; res('wt', 'Menyimpan…');
   try {
-    const r = await call('apiWalkin', n, $('#wd').value, $('#we').value);
+    const d = $('#wd').value.trim();
+    const r = await call('apiWalkin', n, d, $('#we').value);
     stat(r.stats);
     res('ok', '✓ Terdaftar & check-in', r.nama + ' · token ' + r.token);
+    addHist('ok', r.nama + (d ? ' · ' + d : '') + ' · OTS'); // masuk Riwayat scan seperti tamu yang memindai QR
     $('#wn').value = $('#wd').value = $('#we').value = '';
   } catch (e) { handleErr(e); }
   finally { busy = false; }
@@ -332,6 +344,7 @@ $('#out').onclick = () => { // keluar: hapus PIN, kosongkan layar
   clearPin();
   ['#res'].forEach(x => { $(x).hidden = true; });
   $('#stat').textContent = ''; $('#ti').value = ''; $('#q').value = ''; $('#list').innerHTML = '';
+  hist.length = 0; try { sessionStorage.removeItem(KH); } catch (e) {} renderHist(); // riwayat dihapus saat Keluar
   lockScreen('');
 };
 $('#pin').onkeydown = e => { if (e.key === 'Enter') $('#pinB').click(); };
