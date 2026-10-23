@@ -69,7 +69,8 @@ window.APP = {
       field:   { bg: 'rgba(255,255,255,.95)', color: '#0A1A3E', border: '#F0D678', radius: 2.4, pad: 2.2, size: 4, weight: 500 },
       nama:    { x: 50, y: 42, w: 80, placeholder: 'Full Name' },
       divisi:  { x: 50, y: 50, w: 80, placeholder: 'Departement' },
-      wa:      { x: 50, y: 58, w: 80, placeholder: 'WhatsApp Number (08...)' },
+      kode:    { x: 25, y: 58, w: 30 },                                   // pilihan kode negara (bawaan Indonesia +62)
+      wa:      { x: 66, y: 58, w: 48, placeholder: 'WhatsApp Number' },
       tombol:  { x: 50, y: 69, w: 62, size: 5, weight: 700, color: '#0A1A3E', bg: '#F0D678', radius: 3.2, pad: 2.4, teks: 'Register' },
       pesan:   { x: 50, y: 76, w: 80, size: 3.4, weight: 500, color: '#ffb4b4', lineHeight: 1.3 },   // pesan galat
     },
