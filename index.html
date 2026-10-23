@@ -43,6 +43,7 @@ video{width:100%;max-height:280px;border-radius:12px;background:#000;margin-top:
     <div class="row"><input id="ti" placeholder="Token" autocapitalize="characters" autocomplete="off"><button class="p" id="go">Check-in</button></div>
     <div class="row"><button id="cam">📷 Scan QR</button><button id="stop" hidden>Stop</button></div>
     <div class="mu" id="hint" style="margin-top:6px"></div>
+    <div class="mu" id="qn"></div>
     <video id="v" playsinline muted hidden></video>
   </div>
 
@@ -100,15 +101,17 @@ PIN = loadPin();
 // Kosong = halaman ini berjalan DI DALAM Apps Script (kamera langsung diblokir Google di sana).
 // Untuk scanner kamera, hosting file ini di luar Apps Script (mis. GitHub Pages) dan isi dengan URL /exec.
 const API_URL = String((window.APP && window.APP.API_URL) || '');
-const ACT = { apiStats: 'stats', apiCheckin: 'checkin', apiSearch: 'search', apiWalkin: 'walkin' };
+const ACT = { apiStats: 'stats', apiRoster: 'roster', apiCheckin: 'checkin', apiSearch: 'search', apiWalkin: 'walkin' };
 const call = (fn, ...a) => {
   if (!API_URL) return new Promise((ok, no) =>
     google.script.run.withSuccessHandler(ok).withFailureHandler(no)[fn](PIN, ...a));
+  const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 20000); // permintaan macet tidak boleh menahan scanner selamanya
   return fetch(API_URL, {
-    method: 'POST',
+    method: 'POST', signal: ac.signal,
     headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // tanpa preflight CORS
     body: JSON.stringify({ a: ACT[fn], pin: PIN, args: a })
   }).then(r => r.text()).then(t => {
+    clearTimeout(tm);
     let j;
     try { j = JSON.parse(t); } catch (e) {
       throw new Error('Server tidak mengembalikan data. Pastikan akses web app = "Anyone" dan sudah deploy versi baru.');
@@ -116,6 +119,7 @@ const call = (fn, ...a) => {
     if (!j.ok) throw new Error(j.error);
     return j.data;
   }).catch(e => {
+    if (e && e.name === 'AbortError') throw new Error('Server terlalu lama menjawab. Coba lagi.');
     if (e && e.name === 'TypeError') throw new Error('Tidak bisa terhubung ke server. Periksa internet, URL /exec, dan akses web app = "Anyone".');
     throw e;
   });
@@ -129,10 +133,10 @@ function focusTi() { if (matchMedia('(pointer:fine)').matches && !$('#app').hidd
 const msg = e => String((e && e.message) || e).replace(/^Error:\s*/, '');
 const esc = s => { const i = document.createElement('i'); i.textContent = s; return i.innerHTML; };
 
+let hadirN = 0, totalN = 0;
 function stat(s) {
-  if (!s) return;
-  if (s.event) { $('#ev').textContent = s.event; }
-  $('#stat').textContent = 'Hadir ' + s.hadir + ' / ' + s.total;
+  if (s) { hadirN = s.hadir; totalN = s.total; if (s.event) $('#ev').textContent = s.event; }
+  $('#stat').textContent = 'Hadir ' + hadirN + ' / ' + totalN;
 }
 
 function res(cls, title, sub) {
@@ -155,15 +159,15 @@ function handleErr(e) {
 
 async function enter(fromStore) {
   try {
-    const s = await call('apiStats');
+    const s = await call('apiRoster'); // satu panggilan: cek PIN + muat daftar tamu
     if (!fromStore) savePin($('#rem').checked); // sesi lama dari penyimpanan tidak diperpanjang
     $('#boot').hidden = true; $('#lock').hidden = true; $('#app').hidden = false; $('#out').hidden = false; $('#pinErr').textContent = '';
-    stat(s);
+    applyRoster(s);
     if (!urlDone) { // QR discan dengan kamera bawaan HP: link memuat ?t=TOKEN
       urlDone = true;
       getT(t => { if (t) check(t); });
     }
-    focusTi();
+    drain(); focusTi();
   } catch (e) {
     const m = msg(e), pinBad = /PIN/.test(m);
     if (pinBad) clearPin();
@@ -193,6 +197,12 @@ function addHist(cls, text) {
   if (hist.length > HMAX) { hist.pop(); $('#hist').lastElementChild.remove(); }
   try { sessionStorage.setItem(KH, JSON.stringify(hist.map(x => ({ c: x.cls, x: x.text, t: +x.t })))); } catch (e) {}
   histCount(); $('#hist').scrollTop = 0;
+  return e;
+}
+function updHist(e, cls, text) { // ubah entri riwayat setelah server menjawab lain dari dugaan awal
+  e.cls = cls; e.text = text;
+  try { sessionStorage.setItem(KH, JSON.stringify(hist.map(x => ({ c: x.cls, x: x.text, t: +x.t })))); } catch (err) {}
+  renderHist();
 }
 renderHist();
 function onDetect(raw) { // dipanggil dari kamera
@@ -203,20 +213,86 @@ function onDetect(raw) { // dipanggil dari kamera
   if (navigator.vibrate) navigator.vibrate(25); // tanda singkat "terbaca" di HP petugas
   check(raw);
 }
+/* ===== Scan cepat =====
+   Daftar tamu dimuat ke HP petugas (apiRoster), jadi saat QR terbaca tiket dikenali & hasilnya tampil SEKETIKA, tanpa menunggu server.
+   Pencatatan ke server berjalan di latar belakang lewat antrean yang mengulang sendiri bila sinyal putus (antrean tersimpan di perangkat).
+   Token yang belum ada di daftar lokal (mis. RSVP baru) tetap ditanyakan langsung ke server seperti sebelumnya. */
+const TOKEN_RE = /^[A-Z0-9]{4,40}$/, KQ = 'etk_q', finished = new Map();
+let roster = new Map(), queue = [];
+try { queue = JSON.parse(localStorage.getItem(KQ) || '[]').filter(x => x && x.k); } catch (e) {}
+const p2 = n => String(n).padStart(2, '0');
+const hms = t => { const d = new Date(t); return p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds()); };
+const rid = () => Math.random().toString(36).slice(2, 10);
+function saveQ() {
+  try { localStorage.setItem(KQ, JSON.stringify(queue.map(x => ({ k: x.k, t: x.t, i: x.i })))); } catch (e) {}
+  $('#qn').textContent = queue.length ? '⏳ ' + queue.length + ' check-in menunggu terkirim ke server' : '';
+}
+function recount() { let h = 0; roster.forEach(g => { if (g.hadir) h++; }); stat({ hadir: h, total: roster.size }); }
+function applyRoster(d) { // d = { event, guests: [[token, nama, divisi, waktu], ...] }
+  if (!d || !d.guests) return;
+  if (d.event) $('#ev').textContent = d.event;
+  const m = new Map(), now = Date.now();
+  d.guests.forEach(x => m.set(x[0], { nama: x[1], divisi: x[2], hadir: !!x[3], waktu: x[3] }));
+  queue.forEach(it => { const g = m.get(it.k); if (g && !g.hadir) { g.hadir = true; g.waktu = hms(it.t); } }); // belum terkirim: tetap dianggap hadir
+  finished.forEach((v, k) => { // baru dikonfirmasi server tetapi daftar yang datang masih versi lama: jangan dimundurkan
+    if (now - v.at > 120000) { finished.delete(k); return; }
+    const g = m.get(k); if (g && !g.hadir) { g.hadir = true; g.waktu = v.w; }
+  });
+  roster = m; recount();
+}
+function flag(it, cls, title, sub, text) { res(cls, title, sub); if (it.h) updHist(it.h, cls, text); }
+function settle(it, r) { // jawaban server atas check-in yang tadi sudah ditampilkan berhasil
+  const g = roster.get(it.k);
+  if (r.status === 'none') {
+    if (g) { g.hadir = false; g.waktu = ''; recount(); }
+    flag(it, 'er', '✗ Tiket tidak ditemukan', r.token || it.k, 'Tidak ditemukan: ' + it.k);
+    return;
+  }
+  if (g) g.waktu = r.waktu;
+  finished.set(it.k, { w: r.waktu, at: Date.now() });
+  if (r.status === 'dup') flag(it, 'wn', '⚠ Sudah check-in', r.nama + ' · pukul ' + r.waktu, r.nama + ' · sudah check-in ' + r.waktu); // scan lain mencatat lebih dulu
+}
+async function send(it) {
+  if (it.busy) return;
+  it.busy = true;
+  try {
+    const r = await call('apiCheckin', it.k, it.t, it.i); // it.i = id permintaan: server menganggap pengulangan id yang sama sebagai sukses, bukan "dup"
+    queue = queue.filter(x => x !== it); saveQ();
+    settle(it, r);
+  } catch (e) {
+    it.busy = false;
+    if (/PIN/.test(msg(e))) { clearPin(); lockScreen('Sesi berakhir. Masukkan PIN kembali.'); return; } // antrean tetap tersimpan, terkirim setelah masuk lagi
+    it.n = (it.n || 0) + 1;
+    setTimeout(() => { if (PIN && queue.indexOf(it) > -1) send(it); }, Math.min(15000, 1500 * it.n));
+  }
+}
+function drain() { queue.slice().forEach(it => send(it)); }
+function fast(key, g) {
+  const sub = g.nama + (g.divisi ? ' · ' + g.divisi : '');
+  if (g.hadir) { res('wn', '⚠ Sudah check-in', g.nama + ' · pukul ' + g.waktu); addHist('wn', g.nama + ' · sudah check-in ' + g.waktu); return; }
+  const it = { k: key, t: Date.now(), i: rid() };
+  g.hadir = true; g.waktu = hms(it.t); recount();
+  res('ok', '✓ Check-in berhasil', sub); it.h = addHist('ok', sub);
+  queue.push(it); saveQ(); send(it);
+}
 async function check(raw) {
   const key = tokenOf(raw);
+  if (!TOKEN_RE.test(key)) { res('er', '✗ Bukan QR tiket', ''); return; } // QR lain: ditolak di HP, tanpa ke server
   if (inflight.has(key)) return;
-  inflight.add(key);
-  res('wt', 'Memeriksa…');
+  const g = roster.get(key);
+  if (g) return fast(key, g);
+  inflight.add(key); res('wt', 'Memeriksa…'); // tidak ada di daftar lokal: tanya server langsung
   try {
-    const r = await call('apiCheckin', raw);
-    stat(r.stats);
-    if (r.status === 'ok') { res('ok', '✓ Check-in berhasil', r.nama + (r.divisi ? ' · ' + r.divisi : '')); addHist('ok', r.nama + (r.divisi ? ' · ' + r.divisi : '')); }
+    const r = await call('apiCheckin', raw, Date.now(), rid());
+    if (r.status === 'ok' || r.status === 'dup') { roster.set(key, { nama: r.nama, divisi: r.divisi, hadir: true, waktu: r.waktu }); recount(); }
+    const sub = r.nama + (r.divisi ? ' · ' + r.divisi : '');
+    if (r.status === 'ok') { res('ok', '✓ Check-in berhasil', sub); addHist('ok', sub); }
     else if (r.status === 'dup') { res('wn', '⚠ Sudah check-in', r.nama + ' · pukul ' + r.waktu); addHist('wn', r.nama + ' · sudah check-in ' + r.waktu); }
     else { res('er', '✗ Tiket tidak ditemukan', r.token || ''); addHist('er', 'Tidak ditemukan: ' + (r.token || '?')); }
   } catch (e) { handleErr(e); }
   finally { inflight.delete(key); focusTi(); }
 }
+saveQ();
 
 /* Kamera */
 function stopCam() {
@@ -299,18 +375,19 @@ $('#go').onclick = () => { const v = $('#ti').value.trim(); if (v) { $('#ti').va
 $('#ti').onkeydown = e => { if (e.key === 'Enter') $('#go').click(); };
 
 /* Cari nama */
-$('#q').oninput = () => {
+const listHtml = L => L.length ? L.map(g =>
+  '<div class="it"><div>' + esc(g.nama) + '<div class="mu">' + esc(g.divisi) + '</div></div>' +
+  (g.hadir ? '<span class="mu">Sudah hadir</span>' : '<button data-t="' + esc(g.token) + '">Check-in</button>') +
+  '</div>').join('') : '<div class="mu" style="margin-top:8px">Tidak ada hasil</div>';
+$('#q').oninput = () => { // cari di daftar lokal (seketika); baru tanya server bila tidak ada hasil (mis. RSVP baru)
   clearTimeout(st);
+  const q = $('#q').value.trim().toLowerCase();
+  if (q.length < 2) { $('#list').innerHTML = ''; return; }
+  const L = [];
+  roster.forEach((g, k) => { if (L.length < 8 && g.nama.toLowerCase().indexOf(q) > -1) L.push({ nama: g.nama, divisi: g.divisi, token: k, hadir: g.hadir }); });
+  if (L.length) { $('#list').innerHTML = listHtml(L); return; }
   st = setTimeout(async () => {
-    const q = $('#q').value;
-    if (q.trim().length < 2) { $('#list').innerHTML = ''; return; }
-    try {
-      const L = await call('apiSearch', q);
-      $('#list').innerHTML = L.length ? L.map(g =>
-        '<div class="it"><div>' + esc(g.nama) + '<div class="mu">' + esc(g.divisi) + '</div></div>' +
-        (g.hadir ? '<span class="mu">Sudah hadir</span>' : '<button data-t="' + esc(g.token) + '">Check-in</button>') +
-        '</div>').join('') : '<div class="mu" style="margin-top:8px">Tidak ada hasil</div>';
-    } catch (e) { handleErr(e); }
+    try { $('#list').innerHTML = listHtml(await call('apiSearch', q)); } catch (e) { handleErr(e); }
   }, 350);
 };
 $('#list').onclick = e => {
@@ -327,7 +404,7 @@ $('#wB').onclick = async () => {
   try {
     const d = $('#wd').value.trim();
     const r = await call('apiWalkin', n, d, $('#we').value);
-    stat(r.stats);
+    stat(r.stats); roster.set(r.token, { nama: r.nama, divisi: d, hadir: true, waktu: hms(Date.now()) });
     res('ok', '✓ Terdaftar & check-in', r.nama + ' · token ' + r.token);
     addHist('ok', r.nama + (d ? ' · ' + d : '') + ' · OTS'); // masuk Riwayat scan seperti tamu yang memindai QR
     $('#wn').value = $('#wd').value = $('#we').value = '';
@@ -345,10 +422,20 @@ $('#out').onclick = () => { // keluar: hapus PIN, kosongkan layar
   ['#res'].forEach(x => { $(x).hidden = true; });
   $('#stat').textContent = ''; $('#ti').value = ''; $('#q').value = ''; $('#list').innerHTML = '';
   hist.length = 0; try { sessionStorage.removeItem(KH); } catch (e) {} renderHist(); // riwayat dihapus saat Keluar
+  roster = new Map(); finished.clear();
   lockScreen('');
 };
 $('#pin').onkeydown = e => { if (e.key === 'Enter') $('#pinB').click(); };
-setInterval(() => { if (!$('#app').hidden && !busy && !inflight.size) call('apiStats').then(stat).catch(e => { if (/PIN/.test(msg(e))) { clearPin(); lockScreen('Sesi berakhir. Masukkan PIN kembali.'); } }); }, 30000);
+let syncing = false; // sinkron berkala: check-in petugas lain, RSVP baru, kirim ulang antrean; sekaligus menjaga server tetap "hangat"
+async function sync() {
+  if (syncing || $('#app').hidden || !PIN) return;
+  syncing = true;
+  try { applyRoster(await call('apiRoster')); drain(); }
+  catch (e) { if (/PIN/.test(msg(e))) { clearPin(); lockScreen('Sesi berakhir. Masukkan PIN kembali.'); } }
+  finally { syncing = false; }
+}
+setInterval(sync, 45000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
 if (!API_URL) $('#hint').textContent = 'Catatan: Google membatasi kamera langsung di halaman ini. Jika "Scan QR" gagal, pakai kamera bawaan HP atau input token.';
 if (API_URL && !/^https:\/\/script\.google\.com\/.+\/exec$/.test(API_URL)) {
   lockScreen('Alamat server belum diatur. Isi API_URL di config.js dengan URL /exec dari Apps Script.');
