@@ -21,11 +21,21 @@ input.e{text-align:left;outline:none}
 input.e:focus,button.e:focus-visible,a.e:focus-visible{box-shadow:0 0 0 calc(var(--u)*.6) rgba(240,214,120,.55)}
 .box small{display:block;opacity:.8;font-size:.8em;margin-bottom:.35em}
 .box a{color:inherit;word-break:break-all;text-decoration:none}
+#load{position:fixed;top:0;right:0;bottom:0;left:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#0A1A3E;color:rgba(255,255,255,.85);font-size:14px;letter-spacing:.02em;transition:opacity .3s}
+.sp{width:34px;height:34px;border-radius:50%;border:3px solid rgba(240,214,120,.25);border-top-color:#F0D678;animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.cc{display:flex;align-items:center;justify-content:center;white-space:nowrap;line-height:normal;cursor:pointer}
+.cc select{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;font-size:16px;border:0;cursor:pointer}
+.cc:focus-within{box-shadow:0 0 0 calc(var(--u)*.6) rgba(240,214,120,.55)}
 .grid{position:absolute;top:0;right:0;bottom:0;left:0;z-index:9;pointer-events:none;background-image:linear-gradient(rgba(255,0,60,.45) 1px,transparent 1px),linear-gradient(90deg,rgba(255,0,60,.45) 1px,transparent 1px);background-size:10% 10%}
 </style>
 </head>
 <body>
 <div id="stage"></div>
+<div id="load" role="status" aria-live="polite"><div class="sp"></div><div>Memuat formulir…</div></div>
+<script>/* pengaman: layar "Memuat" tidak boleh menutup halaman selamanya bila skrip utama gagal */
+addEventListener("error",function(){var l=document.getElementById("load");if(l)l.style.display="none"});
+setTimeout(function(){var l=document.getElementById("load");if(l)l.style.display="none"},20000);</script>
 <noscript><p style="color:#fff;text-align:center;font:16px system-ui,sans-serif;padding:24px">Aktifkan JavaScript di browser Anda untuk mengisi RSVP.</p></noscript>
 
 <script src="config.js"></script>
@@ -42,7 +52,27 @@ function boot(safe){
   document.documentElement.style.background = document.body.style.background = D.letterbox || '#0A1A3E';
   stage.style.fontFamily = D.font || 'system-ui,sans-serif';
   stage.style.color = D.color || '#fff';
-  if (D.fontUrl) { var lk = document.createElement('link'); lk.rel = 'stylesheet'; lk.href = D.fontUrl; document.head.appendChild(lk); }
+  var fontsReady = Promise.resolve();
+  if (D.fontUrl) {
+    var lk = document.createElement('link'); lk.rel = 'stylesheet'; lk.href = D.fontUrl;
+    fontsReady = new Promise(function(ok){
+      lk.onload = function(){ var f = document.fonts, ff = D.font || 'sans-serif'; f && f.load ? Promise.all([f.load('500 1em ' + ff), f.load('700 1em ' + ff)]).then(ok, ok) : ok(); };
+      lk.onerror = ok;
+    });
+    document.head.appendChild(lk);
+  }
+  function loadImg(src){ // selesai (berhasil/gagal) bila gambar sudah diunduh & di-decode
+    return new Promise(function(ok){
+      if (!src) return ok();
+      var im = new Image(); im.onerror = ok;
+      im.onload = function(){ im.decode ? im.decode().then(ok, ok) : ok(); };
+      im.src = src;
+    });
+  }
+  function hideLoad(){
+    var l = document.getElementById('load'); if (!l) return;
+    l.style.opacity = '0'; setTimeout(function(){ if (l.parentNode) l.parentNode.removeChild(l); }, 350);
+  }
 
   /* Kanvas 1080x1920 diskalakan muat layar; --u = 1% lebar desain */
   var lastW = 0, screens = [];
@@ -109,11 +139,30 @@ function boot(safe){
   var eT = R.judul ? mk(sF, 'h1', { x: 50, y: 22, w: 84, size: 7, weight: 700, lineHeight: 1.1, shadow: SH }, R.judul) : null;
   if (R.sub) mk(sF, 'p', { x: 50, y: 29, w: 80, size: 3.6, weight: 500, color: '#F0D678', lineHeight: 1.35, shadow: SH }, R.sub);
   var iN = mk(sF, 'input', Object.assign({}, FIELD, { x: 50, y: 42, w: 80, placeholder: 'Full Name' }), R.nama || {});
-  var iD = mk(sF, 'input', Object.assign({}, FIELD, { x: 50, y: 50, w: 80, placeholder: 'Departement' }), R.divisi || {});
-  var iW = mk(sF, 'input', Object.assign({}, FIELD, { x: 50, y: 58, w: 80, placeholder: 'WhatsApp Number' }), R.wa || {});
+  var iD = mk(sF, 'input', Object.assign({}, FIELD, { x: 50, y: 50, w: 80, placeholder: 'Division' }), R.divisi || {});
+  var iW = mk(sF, 'input', Object.assign({}, FIELD, { x: 66, y: 58, w: 48, placeholder: 'WhatsApp Number' }), R.wa || {});
   iN.type = 'text'; iN.maxLength = 80; iN.autocomplete = 'name';
   iD.type = 'text'; iD.maxLength = 80;
   iW.type = 'tel'; iW.inputMode = 'tel'; iW.autocomplete = 'tel';
+
+  /* Kode negara: bawaan Indonesia (+62). "Other" = ketik nomor lengkap diawali + dan kode negara. */
+  var CC = [['ID','Indonesia','62'],['AU','Australia','61'],['AT','Austria','43'],['BH','Bahrain','973'],['BD','Bangladesh','880'],['BE','Belgium','32'],['BN','Brunei','673'],['KH','Cambodia','855'],['CA','Canada','1'],['CN','China','86'],['DK','Denmark','45'],['EG','Egypt','20'],['FR','France','33'],['DE','Germany','49'],['HK','Hong Kong','852'],['IN','India','91'],['IE','Ireland','353'],['IT','Italy','39'],['JP','Japan','81'],['KW','Kuwait','965'],['LA','Laos','856'],['MY','Malaysia','60'],['MM','Myanmar','95'],['NL','Netherlands','31'],['NZ','New Zealand','64'],['NO','Norway','47'],['OM','Oman','968'],['PK','Pakistan','92'],['PH','Philippines','63'],['QA','Qatar','974'],['RU','Russia','7'],['SA','Saudi Arabia','966'],['SG','Singapore','65'],['ZA','South Africa','27'],['KR','South Korea','82'],['ES','Spain','34'],['LK','Sri Lanka','94'],['SE','Sweden','46'],['CH','Switzerland','41'],['TW','Taiwan','886'],['TH','Thailand','66'],['TL','Timor-Leste','670'],['TR','Turkey','90'],['AE','United Arab Emirates','971'],['GB','United Kingdom','44'],['US','United States','1'],['VN','Vietnam','84']];
+  function flag(iso){ return iso.replace(/./g, function(ch){ return String.fromCodePoint(127397 + ch.charCodeAt(0)); }); }
+  var sK = mk(sF, 'div', Object.assign({}, FIELD, { x: 25, y: 58, w: 30 }), R.kode || {}), kv = document.createElement('span'), ks = document.createElement('select');
+  sK.classList.add('cc');
+  sK.style.fontSize = 'max(16px,' + u((R.kode && R.kode.size) || FIELD.size || 4) + ')';
+  sK.style.paddingLeft = sK.style.paddingRight = u(1.2);
+  ks.setAttribute('aria-label', 'Country code');
+  CC.forEach(function(c){ var o = document.createElement('option'); o.value = c[2]; o.setAttribute('data-i', c[0]); o.textContent = flag(c[0]) + ' ' + c[1] + ' (+' + c[2] + ')'; ks.appendChild(o); });
+  var oo = document.createElement('option'); oo.value = ''; oo.textContent = '\uD83C\uDF10 Other (type + and country code)'; ks.appendChild(oo);
+  var phPlain = iW.placeholder;
+  function kUpd(){
+    var o = ks.options[ks.selectedIndex];
+    kv.textContent = (ks.value ? flag(o.getAttribute('data-i')) + ' +' + ks.value : '\uD83C\uDF10 +') + ' \u25BE';
+    iW.placeholder = ks.value ? phPlain : '+60 12 345 6789';
+  }
+  ks.onchange = kUpd; kUpd();
+  sK.append(kv, ks);
   var bT = mk(sF, 'button', Object.assign({ x: 50, y: 69, w: 62, teks: 'Register' }, BTN), R.tombol || {}); bT.type = 'button';
   var eE = mk(sF, 'div', { x: 50, y: 76, w: 80, size: 3.4, weight: 500, color: '#ffb4b4', lineHeight: 1.3, shadow: SH }, R.pesan || {});
   if (R.catatan) mk(sF, 'div', { x: 50, y: 94, size: 3, weight: 500, color: 'rgba(255,255,255,.75)', shadow: SH }, R.catatan);
@@ -152,7 +201,7 @@ function boot(safe){
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, fb); else fb();
   }
   function showOk(r){
-    oM.textContent = r.waSent ? 'Your invitation link has been sent to WhatsApp ' + r.wa + '. Make sure to save that message!' : 'Registration is successful. Please save the invitation link below.';
+    oM.textContent = r.waSent ? 'Your invitation link has been sent to WhatsApp +' + r.wa + '. Make sure to save that message!' : 'Registration is successful. Please save the invitation link below.';
     var has = /^https?:\/\//.test(r.linkTiket || '');
     box.hidden = bS.hidden = bW.hidden = !has;
     if (has) {
@@ -166,12 +215,13 @@ function boot(safe){
 
   bT.onclick = function(){
     err('');
-    var n = iN.value.trim(), d = iD.value.trim(), w = iW.value.trim();
+    var n = iN.value.trim(), d = iD.value.trim(), w = iW.value.trim(), k = ks.value;
     if (n.length < 2) return err('Nama minimal 2 karakter.');
     if (!d) return err('Bagian/Divisi wajib diisi.');
     if (!w) return err('Nomor WhatsApp wajib diisi.');
+    if (!k && !/^(\+|00)/.test(w)) return err('Untuk negara lain, ketik nomor lengkap diawali + dan kode negara (contoh +60123456789).');
     loading(true);
-    api('rsvp', [n, d, w]).then(function(r){ loading(false); showOk(r); })
+    api('rsvp', [n, d, w, k]).then(function(r){ loading(false); showOk(r); })
       .catch(function(e){ loading(false); err((e && e.message) || 'Terjadi kesalahan. Coba lagi.'); });
   };
 
@@ -188,8 +238,15 @@ function boot(safe){
       if (!i.open) { err('Pendaftaran RSVP sudah ditutup.'); bT.disabled = true; bT.textContent = 'Pendaftaran Ditutup'; lbT = bT.textContent; }
     }).catch(function(){});
   }
+
+  /* Layar "Memuat…" tetap tampil sampai gambar background (dan huruf) siap, lalu tampilan terbuka sekaligus.
+     Batas tunggu 10 detik agar halaman tetap terbuka bila jaringan sangat lambat. */
+  var first = demo === 'ok' ? O.bg : R.bg, next = demo === 'ok' ? R.bg : O.bg;
+  Promise.race([Promise.all([loadImg(first), fontsReady]), new Promise(function(ok){ setTimeout(ok, 10000); })])
+    .then(function(){ hideLoad(); loadImg(next); }); // layar berikutnya disiapkan di latar belakang
 }
 function fail(e){
+  var l = document.getElementById('load'); if (l) l.style.display = 'none';
   var d = document.createElement('div');
   d.style.cssText = 'position:fixed;left:12px;right:12px;top:12px;padding:14px;border-radius:10px;background:#3b1010;color:#ffd0d0;font:14px/1.4 system-ui,sans-serif;z-index:99';
   d.textContent = 'Halaman RSVP gagal dimuat (' + ((e && e.message) || e) + '). Muat ulang halaman; jika tetap gagal, hubungi panitia.';
