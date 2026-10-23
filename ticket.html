@@ -173,8 +173,14 @@ function chime() {
     });
   } catch (e) {}
 }
+let buzzPending = false;
+function buzz() { try { return !!(canVib && navigator.vibrate(VIB)); } catch (e) { return false; } }
+['touchstart', 'click'].forEach(ev => addEventListener(ev, () => { if (buzzPending) { buzzPending = false; buzz(); } }, { passive: true }));
 function celebrate() { // dipanggil SEKALI, tepat saat status berubah dari "menunggu" menjadi "berhasil"
-  try { if (canVib) navigator.vibrate(VIB); } catch (e) {}
+  if (canVib) {
+    if (!buzz()) buzzPending = true; // diblokir browser (belum ada ketukan)? getarkan pada sentuhan berikutnya
+    else setTimeout(() => { if (!document.hidden) buzz(); }, 1800); // denyut kedua: tetap terasa walau ponsel baru dimasukkan ke saku
+  }
   chime();
   document.title = '✓ Berhasil check-in';
   const f = $('#flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
@@ -283,7 +289,8 @@ setup('#dok', 'success', { '#sn': 'nama', '#sd': 'divisi', '#sw': 'waktu' });
 setup('#dcover', 'cover', { '#cn': 'nama', '#cd': 'divisi', '#cb': 'tombol' });
 
 /* ---------- data ---------- */
-const ask = () => fetch(API_URL, {
+const ask = () => { const ac = new AbortController(); setTimeout(() => ac.abort(), 9000); return fetch(API_URL, { // permintaan macet dibatalkan, polling tidak pernah berhenti
+  signal: ac.signal, cache: 'no-store',
   method: 'POST',
   headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // tanpa preflight CORS
   body: JSON.stringify({ a: 'guest', args: [token] })
@@ -291,7 +298,7 @@ const ask = () => fetch(API_URL, {
   let j; try { j = JSON.parse(x); } catch (e) { throw new Error('Respons server tidak valid'); }
   if (!j.ok) throw new Error(j.error);
   return j.data;
-});
+}); };
 
 function view(id) {
   cur = id;
@@ -326,19 +333,21 @@ function render(r) {
   showCover(r); // sampul "Buka Undangan" menutup tiket sampai tamu mengetuk
 }
 
-const T0 = Date.now();
-let lastMs = 0;
+let lastMs = 0, lastAct = Date.now(), busyAt = 0;
+['touchstart', 'click', 'focus', 'pageshow'].forEach(ev => addEventListener(ev, () => { lastAct = Date.now(); }, { passive: true }));
+document.addEventListener('visibilitychange', () => { lastAct = Date.now(); });
 function next() {
   clearTimeout(timer);
-  // cepat (±2,5 dtk) saat tiket baru dibuka di pintu masuk, hemat (±6 dtk) setelah 5 menit, dan melambat sendiri bila server lambat
-  if (!done) timer = setTimeout(tick, Math.min(12000, Math.max(Date.now() - T0 < 300000 ? 2500 : 6000, lastMs * 3)) + Math.random() * 600);
+  // Tamu yang baru membuka/mengetuk layar (3 menit terakhir) dicek tiap ±1,5 dtk, selebihnya ±3 dtk.
+  // Server lambat: jeda mengikuti lama respons, TIDAK dikali 3 (dulu itu membuat getar baru terasa 6-12 dtk setelah scan).
+  if (!done) timer = setTimeout(tick, Math.max(Date.now() - lastAct < 180000 ? 1500 : 3000, Math.min(lastMs, 6000)) + Math.random() * 400);
 }
 
 async function tick() {
   if (done) return;
   if (document.hidden) { next(); return; }   // hemat kuota saat layar mati / tab di belakang
-  if (busy) return;
-  busy = true;
+  if (busy && Date.now() - busyAt < 12000) return; // permintaan sebelumnya masih berjalan; yang macet >12 dtk dilewati agar polling tidak pernah mati
+  busy = true; busyAt = Date.now();
   const t1 = Date.now();
   try { render(await ask()); lastMs = Date.now() - t1; if (!/desain/.test($('#net').textContent)) $('#net').textContent = ''; }
   catch (e) { $('#net').textContent = 'Koneksi bermasalah, mencoba lagi…'; }
