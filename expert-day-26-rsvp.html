@@ -24,6 +24,7 @@ input.e:focus,button.e:focus-visible,a.e:focus-visible{box-shadow:0 0 0 calc(var
 #load{position:fixed;top:0;right:0;bottom:0;left:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#0A1A3E;color:rgba(255,255,255,.85);font-size:14px;letter-spacing:.02em;transition:opacity .3s}
 .sp{width:34px;height:34px;border-radius:50%;border:3px solid rgba(240,214,120,.25);border-top-color:#F0D678;animation:spin .9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+.lnk{text-decoration:underline;text-underline-offset:.25em}
 .cc{display:flex;align-items:center;justify-content:center;white-space:nowrap;line-height:normal;cursor:pointer}
 .cc select{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;font-size:16px;border:0;cursor:pointer}
 .cc:focus-within{box-shadow:0 0 0 calc(var(--u)*.6) rgba(240,214,120,.55)}
@@ -180,14 +181,22 @@ function boot(safe){
   var bW = mk(sO, 'a', Object.assign({ x: 50, y: 72, w: 62, size: 4.4, teks: 'Open WhatsApp' }, BTN, { bg: '#25D366', color: '#06281a' }), O.wa || {});
   bW.target = '_blank'; bW.rel = 'noopener';
   var lbS = bS.textContent;
+  var bU = mk(sO, 'button', { x: 50, y: 80, w: 62, size: 3.4, weight: 500, color: 'rgba(255,255,255,.8)', bg: 'transparent', shadow: SH, teks: 'Register another person' }, O.ulang);
+  if (bU) { bU.type = 'button'; bU.classList.add('lnk'); bU.onclick = function(){ err(''); show(sF); }; } // mendaftarkan orang lain dari HP yang sama
 
   if (Q.get('grid') === '1') screens.forEach(function(sc){ var g = document.createElement('div'); g.className = 'grid'; sc.cv.appendChild(g); });
 
   /* Server */
-  function api(a, args){
-    return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ a: a, args: args || [] }) })
-      .then(function(r){ return r.json(); })
-      .then(function(j){ if (!j || !j.ok) throw new Error((j && j.error) || 'Gagal menghubungi server'); return j.data; });
+  function api(a, args, ms){
+    var ac = new AbortController(), tm = setTimeout(function(){ ac.abort(); }, ms || 20000); // koneksi macet tidak boleh menahan tombol selamanya
+    return fetch(API, { method: 'POST', signal: ac.signal, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ a: a, args: args || [] }) })
+      .then(function(r){ clearTimeout(tm); return r.json(); })
+      .then(function(j){ if (!j || !j.ok) throw new Error((j && j.error) || 'Gagal menghubungi server'); return j.data; })
+      .catch(function(e){
+        if (e && e.name === 'AbortError') throw new Error('Koneksi lambat. Tekan Register lagi: data Anda tidak akan terdaftar ganda.');
+        if (e && e.name === 'TypeError') throw new Error('Tidak ada koneksi internet. Coba lagi.');
+        throw e;
+      });
   }
   function err(m){ eE.textContent = m || ''; }
   function loading(on){ bT.disabled = on; bT.textContent = on ? 'Sending…' : lbT; }
@@ -200,8 +209,14 @@ function boot(safe){
     }
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, fb); else fb();
   }
-  function showOk(r){
-    oM.textContent = r.waSent ? 'Your invitation link has been sent to WhatsApp +' + r.wa + '. Make sure to save that message!' : 'Registration is successful. Please save the invitation link below.';
+  /* Pendaftaran diingat di browser ini: membuka link RSVP lagi langsung menampilkan link undangan, bukan formulir. */
+  var SK = 'etk_rsvp';
+  function loadReg(){ try { var v = JSON.parse(localStorage.getItem(SK) || 'null'); return v && /^https?:\/\//.test(v.linkTiket || '') ? v : null; } catch (e) { return null; } }
+  function saveReg(r){ try { localStorage.setItem(SK, JSON.stringify(r)); } catch (e) {} }
+  function dropReg(){ try { localStorage.removeItem(SK); } catch (e) {} }
+  function tokOf(l){ var m = /[?&][gt]=([A-Za-z0-9]+)/.exec(l || ''); return m ? m[1].toUpperCase() : ''; }
+  function showOk(r, back){
+    oM.textContent = (back || r.again) ? 'You are already registered. Please save your invitation link below.' : r.waSent ? 'Your invitation link has been sent to WhatsApp +' + r.wa + '. Make sure to save that message!' : 'Registration is successful. Please save the invitation link below.';
     var has = /^https?:\/\//.test(r.linkTiket || '');
     box.hidden = bS.hidden = bW.hidden = !has;
     if (has) {
@@ -210,7 +225,7 @@ function boot(safe){
       bS.onclick = function(){ copy(r.linkTiket, function(){ bS.textContent = 'Copied ✓'; setTimeout(function(){ bS.textContent = lbS; }, 2000); }); };
     }
     show(sO);
-    if (A.VIBRATE && navigator.vibrate) navigator.vibrate(A.VIBRATE);
+    if (!back && A.VIBRATE && navigator.vibrate) navigator.vibrate(A.VIBRATE);
   }
 
   bT.onclick = function(){
@@ -221,16 +236,20 @@ function boot(safe){
     if (!w) return err('Nomor WhatsApp wajib diisi.');
     if (!k && !/^(\+|00)/.test(w)) return err('Untuk negara lain, ketik nomor lengkap diawali + dan kode negara (contoh +60123456789).');
     loading(true);
-    api('rsvp', [n, d, w, k]).then(function(r){ loading(false); showOk(r); })
+    api('rsvp', [n, d, w, k], 30000).then(function(r){ loading(false); saveReg(r); showOk(r); })
       .catch(function(e){ loading(false); err((e && e.message) || 'Terjadi kesalahan. Coba lagi.'); });
   };
 
   fit(); addEventListener('resize', fit); addEventListener('orientationchange', fit); addEventListener('load', fit); addEventListener('pageshow', fit);
 
+  var reg = !demo && Q.get('new') !== '1' ? loadReg() : null; // sudah pernah daftar di browser ini? (?new=1 = paksa tampilkan formulir)
   if (demo === 'ok') {
     showOk({ waSent: true, wa: '62812xxxxxxx', linkTiket: 'https://contoh.github.io/e-registration/ticket.html?t=ABC123' });
   } else {
-    show(sF);
+    if (reg) {
+      showOk(reg, true); // langsung tampilkan link undangan
+      api('guest', [reg.token || tokOf(reg.linkTiket)], 12000).then(function(g){ if (g && g.found === false) { dropReg(); show(sF); } }).catch(function(){}); // tiket sudah tidak ada di server: kembali ke formulir
+    } else show(sF);
     if (!demo) api('rsvpinfo').then(function(i){
       if (!i) return;
       if (autoT) eT.textContent = i.event;
@@ -241,7 +260,7 @@ function boot(safe){
 
   /* Layar "Memuat…" tetap tampil sampai gambar background (dan huruf) siap, lalu tampilan terbuka sekaligus.
      Batas tunggu 10 detik agar halaman tetap terbuka bila jaringan sangat lambat. */
-  var first = demo === 'ok' ? O.bg : R.bg, next = demo === 'ok' ? R.bg : O.bg;
+  var onOk = demo === 'ok' || !!reg, first = onOk ? O.bg : R.bg, next = onOk ? R.bg : O.bg;
   Promise.race([Promise.all([loadImg(first), fontsReady]), new Promise(function(ok){ setTimeout(ok, 10000); })])
     .then(function(){ hideLoad(); loadImg(next); }); // layar berikutnya disiapkan di latar belakang
 }
